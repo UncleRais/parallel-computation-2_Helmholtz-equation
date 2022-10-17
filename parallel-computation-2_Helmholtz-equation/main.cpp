@@ -18,11 +18,11 @@ constexpr T norm_minus(T* a, T* b, size_t size)
 
 
 template< typename T >
-void print_system(const T* top,
-				  const T* upper,
-				  const T* diag, 
+void print_system(const T* bot,
 				  const T* lower,
-				  const T* bot,
+				  const T* diag, 
+				  const T* upper,
+				  const T* top,
 				  const T* right_part, size_t size)
 {
 	const int step = sqrt(size);
@@ -117,9 +117,9 @@ std::vector< T* > assemble_system(T k, std::function<T(T, T)> f, T L, size_t N)
 	for (int i = 0; i < num_var - 1; ++i)		  lower_diag[i] = -1;
 	for (int i = 0; i < num_var - internalN; ++i) bot_diag[i] = -1;
 
-	for (size_t j = 1; j < internalN + 1; ++j)
-		for (size_t i = 1; i < internalN + 1; ++i)
-			right_part[(j - 1) * internalN + (i - 1)] = right_coef * f(i * h, j * h);
+	for (size_t j = 1; j <= internalN ; ++j)
+		for (size_t i = 1; i <= internalN ; ++i)
+			right_part[(j - 1) * internalN + (i - 1)] = right_coef * f(i * h, (internalN - j + 1) * h);
 
 	// Add 0's from boundary conditions
 	for (int i = internalN - 1; i < num_var - 1; i += internalN) upper_diag[i] = 0;
@@ -174,9 +174,9 @@ T* Jacobi(std::vector<T*>& system, size_t num_var,  T epsilon)
 	system[5][num_var - 1] = system[5][num_var - 1] * temp;
 
 	//Print your system if you want 
-	print_system(system[4], system[3], system[2], system[1], system[0], system[5], num_var);
+	//print_system(system[0], system[1], system[2], system[3], system[4], system[5], num_var);
 
-	T normC = 0.99999; // Dima, plz, calculate this value, i am fed up of it
+	T normC = 4 * system[0][0]; /// Dima, plz, calculate this value, i am fed up of it
 
 	size_t counter = 0;
 	T* prev = new T[num_var * sizeof(T)];
@@ -211,16 +211,15 @@ T* Jacobi(std::vector<T*>& system, size_t num_var,  T epsilon)
 // k - wave_number
 // f - right_part
 template<typename T>
-T* Helmholtz_solve(T wave_number, std::function<T(T, T)> right_part, T length, size_t num_points)
+T* Helmholtz_solve(T wave_number, std::function<T(T, T)> right_part, T length, size_t num_points, T epsilon = 1e-5)
 {
 	std::vector< T* > system(6);
 	system = assemble_system(wave_number, right_part, length, num_points);
 
 	const size_t num_var = sqr(num_points - 2);
 	//Print your system if you want 
-	print_system(system[4], system[3], system[2], system[1], system[0], system[5], num_var);
+	print_system(system[0], system[1], system[2], system[3], system[4], system[5], num_var);
 
-	const double epsilon = 1e-3;
 	T* sol = Jacobi(system, num_var, epsilon);
 
 	for (size_t i = 0; i < 6; ++i)
@@ -236,7 +235,7 @@ static T k = 10;
 
 T right_part(T x, T y)
 {
-	return(2 * sin(M_PI * y) + k * k * (1 - x) * x * sin(M_PI * x) + M_PI * M_PI * (1 - x) * x * sin(M_PI * y));
+	return(2 * sin(M_PI * y) + k * k * (1 - x) * x * sin(M_PI * y) + M_PI * M_PI * (1 - x) * x * sin(M_PI * y));
 }
 
 T solution(T x, T y)
@@ -247,26 +246,27 @@ T solution(T x, T y)
 int main(int argc, char** argv)
 {
 	std::function<T (T, T)> f = right_part;
-	size_t N = 4;
+	size_t N = 5;
 	size_t num_var = N - 2;
 	size_t internalN = sqr(num_var);
-	T* sol = Helmholtz_solve(k, f, T(1), N);
+	T* sol = Helmholtz_solve(k, f, T(1), N, 1e-5);
 
 	T* exact = new T[internalN * sizeof(T)];
 	T h = T(1) / (N - 1);
 	for (size_t j = 1; j < num_var + 1; ++j)
-		for (size_t i = 1; i < num_var + 1; ++i)
-			exact[(j - 1) * num_var + (i - 1)] = solution(i * h, j * h);
+		for (size_t i = 1; i < num_var + 1; ++i) 
+			exact[(j - 1) * num_var + (i - 1)] = solution(i * h, (num_var - j + 1) * h);
 
 
-	T LtwoNorm = T(0);
+	T LtwoNorm = T(0), LtwoExact = T(0);
 	for (size_t i = 0; i < internalN; ++i)
 	{
-		LtwoNorm += sqr(sol[i] - exact[i]) / sqr(exact[i]);
+		LtwoNorm += sqr(sol[i] - exact[i]);
+		LtwoExact += sqr(exact[i]);
 	}
 
-	const int params[2] = { 5, 3 };
-	std::cout << "Jacobi solution : ";
+	const int params[2] = { 5, 8 };
+	/*std::cout << "Jacobi solution : ";
 	for (size_t i = 0; i < internalN; ++i)
 	{
 		std::cout << std::setw(params[0]) << std::setprecision(params[1]) << sol[i] << " ";
@@ -277,8 +277,8 @@ int main(int argc, char** argv)
 	{
 		std::cout << std::setw(params[0]) << std::setprecision(params[1]) << exact[i] << " ";
 	}
-	std::cout << "\n\n";
-	std::cout << "Error L2_Norm = " << sqrt(LtwoNorm) << "\n";
+	std::cout << "\n\n";*/
+	std::cout << "Error L2_Norm = " << sqrt(LtwoNorm / LtwoExact) << "\n";
 		
 	
 
