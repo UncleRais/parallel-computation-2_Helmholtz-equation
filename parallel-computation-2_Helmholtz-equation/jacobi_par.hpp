@@ -32,8 +32,7 @@ UniquePtrArray jacobi_par(T alpha, T* const f, int num_var, int internalN, T eps
 	auto x_ptr = x.get();
 	auto x0_ptr = x0.get();
 
-	#pragma omp parallel
-	while (true) {
+	do {
 		// x0 = x
 		memcpy(x0.get(), x.get(), num_var * sizeof(T));
 
@@ -46,70 +45,70 @@ UniquePtrArray jacobi_par(T alpha, T* const f, int num_var, int internalN, T eps
 
 		//firstprivate(num_var, internalN, f, inverseAlpha, x_ptr, x0_ptr)
 
-		//#pragma omp parallel default(none) firstprivate(num_var, internalN, f, inverseAlpha, x_ptr, x0_ptr)
-		//{
-		//	// Rows i = 1, internalN - 1
-		//	#pragma omp for nowait schedule(static)
-		//	for (int i = 1; i < internalN; ++i)
-		//		x_ptr[i] = inverseAlpha * (
-		//			f[i]
-		//			+ x0_ptr[i - 1]
-		//			+ x0_ptr[i + 1]
-		//			+ x0_ptr[i + internalN]
-		//			);
+		#pragma omp parallel default(none) firstprivate(num_var, internalN, f, inverseAlpha, x_ptr, x0_ptr)
+		{
+			// Rows i = 1, internalN - 1
+			#pragma omp for nowait schedule(static)
+			for (int i = 1; i < internalN; ++i)
+				x_ptr[i] = inverseAlpha * (
+					f[i]
+					+ x0_ptr[i - 1]
+					+ x0_ptr[i + 1]
+					+ x0_ptr[i + internalN]
+					);
 
-		//	// Rows i = internalN, N - interanlN
-		//	#pragma omp for nowait schedule(static)
-		//	for (int i = internalN; i < num_var - internalN; ++i)
-		//		x_ptr[i] = inverseAlpha * (
-		//			f[i]
-		//			+ x0_ptr[i - 1]
-		//			+ x0_ptr[i + 1]
-		//			+ x0_ptr[i + internalN]
-		//			+ x0_ptr[i - internalN]
-		//			);
+			// Rows i = internalN, N - interanlN
+			#pragma omp for nowait schedule(static)
+			for (int i = internalN; i < num_var - internalN; ++i)
+				x_ptr[i] = inverseAlpha * (
+					f[i]
+					+ x0_ptr[i - 1]
+					+ x0_ptr[i + 1]
+					+ x0_ptr[i + internalN]
+					+ x0_ptr[i - internalN]
+					);
 
-		//	// Rows i = N - interanlN + 1, N - 1
-		//	#pragma omp for nowait schedule(static)
-		//	for (int i = num_var - internalN; i < num_var - 1; ++i)
-		//		x_ptr[i] = inverseAlpha * (
-		//			f[i]
-		//			+ x0_ptr[i - 1]
-		//			+ x0_ptr[i + 1]
-		//			+ x0_ptr[i - internalN]
-		//			);
-		//}
+			// Rows i = N - interanlN + 1, N - 1
+			#pragma omp for nowait schedule(static)
+			for (int i = num_var - internalN; i < num_var - 1; ++i)
+				x_ptr[i] = inverseAlpha * (
+					f[i]
+					+ x0_ptr[i - 1]
+					+ x0_ptr[i + 1]
+					+ x0_ptr[i - internalN]
+					);
+		}
 
-		// Rows i = 1, internalN - 1
-		#pragma omp parallel for schedule(static) firstprivate(num_var, internalN, f, inverseAlpha, x_ptr, x0_ptr)
-		for (int i = 1; i < internalN; ++i)
-			x_ptr[i] = inverseAlpha * (
-				f[i]
-				+ x0_ptr[i - 1]
-				+ x0_ptr[i + 1]
-				+ x0_ptr[i + internalN]
-				);
+		//// Rows i = 1, internalN - 1
+		//#pragma omp parallel for default(none) schedule(static)
+		//for (int i = 1; i < internalN; ++i)
+		//	x_ptr[i] = inverseAlpha * (
+		//		f[i]
+		//		+ x0_ptr[i - 1]
+		//		+ x0_ptr[i + 1]
+		//		+ x0_ptr[i + internalN]
+		//		);
 
-		// Rows i = internalN, N - interanlN
-		#pragma omp parallel for schedule(static) firstprivate(num_var, internalN, f, inverseAlpha, x_ptr, x0_ptr)
-		for (int i = internalN; i < num_var - internalN; ++i)
-			x_ptr[i] = inverseAlpha * (
-				f[i]
-				+ x0_ptr[i - 1]
-				+ x0_ptr[i + 1]
-				+ x0_ptr[i + internalN]
-				+ x0_ptr[i - internalN]
-				);
+		//// Rows i = internalN, N - interanlN
+		//#pragma omp parallel for default(none) schedule(static)
+		//for (int i = internalN; i < num_var - internalN; ++i)
+		//	x_ptr[i] = inverseAlpha * (
+		//		f[i]
+		//		+ x0_ptr[i - 1]
+		//		+ x0_ptr[i + 1]
+		//		+ x0_ptr[i + internalN]
+		//		+ x0_ptr[i - internalN]
+		//		);
 
-		// Rows i = N - interanlN + 1, N - 1
-		#pragma omp parallel for schedule(static) firstprivate(num_var, internalN, f, inverseAlpha, x_ptr, x0_ptr)
-		for (int i = num_var - internalN; i < num_var - 1; ++i)
-			x_ptr[i] = inverseAlpha * (
-				f[i]
-				+ x0_ptr[i - 1]
-				+ x0_ptr[i + 1]
-				+ x0_ptr[i - internalN]
-				);
+		//// Rows i = N - interanlN + 1, N - 1
+		//#pragma omp parallel for default(none) schedule(static)
+		//for (int i = num_var - internalN; i < num_var - 1; ++i)
+		//	x_ptr[i] = inverseAlpha * (
+		//		f[i]
+		//		+ x0_ptr[i - 1]
+		//		+ x0_ptr[i + 1]
+		//		+ x0_ptr[i - internalN]
+		//		);
 
 		// Rows i = N
 		x[num_var - 1] = inverseAlpha * (
@@ -124,7 +123,7 @@ UniquePtrArray jacobi_par(T alpha, T* const f, int num_var, int internalN, T eps
 			x[i] -= inverseAlpha * x0[i - 1];
 		}
 
-	}/// while (norm_of_difference_L2_par(x.get(), x0.get(), num_var) > epsilon);
+	} while (norm_of_difference_L2_par(x.get(), x0.get(), num_var) > epsilon);
 
 	return x;
 }
