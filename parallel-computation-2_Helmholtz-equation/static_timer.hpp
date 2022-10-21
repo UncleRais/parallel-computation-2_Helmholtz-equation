@@ -17,8 +17,8 @@ struct StaticTimer {
 		_start_timepoint = Clock::now();
 	}
 
-	inline static long long end() {
-		return std::chrono::duration_cast<Milliseconds>(Clock::now() - _start_timepoint).count();
+	inline static double end() {
+		return std::chrono::duration_cast<Milliseconds>(Clock::now() - _start_timepoint).count() / 1000.;
 			// time since last StaticTimer::start() call in ms 
 	}
 
