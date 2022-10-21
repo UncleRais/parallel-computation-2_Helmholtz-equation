@@ -30,7 +30,7 @@ RawArray get_SLAE_right_part(std::function<T(T, T)> f, T L, size_t N) {
 
 	for (size_t j = 1; j <= internalN; ++j)
 		for (size_t i = 1; i <= internalN; ++i)
-			res[(j - 1) * internalN + (i - 1)] = beta * f(i * h, (internalN - j + 1) * h);
+			res[(j - 1) * internalN + (i - 1)] = beta * f(i * h, (static_cast<T>(internalN) - j + 1) * h);
 
 	return res;
 }
@@ -45,7 +45,7 @@ RawArray get_SLAE_right_part(std::function<T(T, T)> f, T L, size_t N) {
 // x_k+1 = y + C x_k,
 // y = D^{-1} * f, C = D^{-1} * (D - A)
 // Ñonvergence condition: diagonal dominance
-RawArray Jacobi(T alpha, T* f, size_t num_var, size_t internalN, T epsilon) {
+RawArray Jacobi(T alpha, T* const f, size_t num_var, size_t internalN, T epsilon) {
 	T normC = 0.9999;
 
 	const T inverseAlpha = T(1) / alpha;
