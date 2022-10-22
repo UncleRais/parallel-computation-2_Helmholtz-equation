@@ -90,5 +90,6 @@ UniquePtrArray jacobi_par(T alpha, T* const f, int num_var, int internalN, T eps
 
 	} while (norm_of_difference_L2_par(x_ptr, x0_ptr, num_var) > epsilon);
 
-	return x;
+	if (x.get() == x_ptr) return x;
+	else return x0;
 }
