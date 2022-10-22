@@ -35,12 +35,6 @@ void print_array(T* const arr, size_t size) {
 	std::cout << arr[size - 1] << " }\n";
 }
 
-inline T norm_of_difference_L2(T* const a, T* const b, size_t size) {
-	T res(0);
-	for (size_t i = 0; i < size; ++i) res += sqr(a[i] - b[i]);
-	return std::sqrt(res);
-};
-
 
 // Utility
 inline void exit_with_error(const std::string &msg) {

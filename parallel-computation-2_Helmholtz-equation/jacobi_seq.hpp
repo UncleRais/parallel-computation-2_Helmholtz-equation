@@ -3,6 +3,13 @@
 #include "utils.hpp"
 
 
+inline T norm_of_difference_L2(T* const a, T* const b, size_t size) {
+	T res(0);
+	for (size_t i = 0; i < size; ++i) res += sqr(a[i] - b[i]);
+	return std::sqrt(res);
+};
+
+
 // Iterative Jacobi method for linear system solution
 // A * x = f, 
 // (L + U) * x_k + D * x_k+1 = f, 

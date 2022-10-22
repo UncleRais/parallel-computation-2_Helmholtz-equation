@@ -88,8 +88,8 @@ int main(int argc, char** argv) {
 
 	double jacobiSeqTime = 0;
 	double jacobiParTime = 0;
-	double seidelSeqTime = 0;
-	double seidelParTime = 0;
+	//double seidelSeqTime = 0;
+	//double seidelParTime = 0;
 
 	auto solution_exact = get_exact_solution();
 
@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
 
 	// 2) Parallel Jacobi
 	{
-		table_add_1("Jacobi");
+		table_add_1("Parallel Jacobi");
 
 		StaticTimer::start();
 		auto solution = Helmholtz_solve(k, right_part, L, N, Method::PARALLEL_JACOBI, precision);
