@@ -2,7 +2,7 @@
 #include <iomanip>
 
 #include "static_timer.hpp"
-#include "helmholtz_seq.hpp"
+#include "helmholtz_jacobi.hpp"
 #include "table.hpp"
 
 
@@ -20,6 +20,8 @@ const T L = 1;
 // Grid size
 const size_t N = 6002;
 const size_t internalN = N - 2;
+
+const size_t pointCount = sqr(N);
 const size_t internalPointCount = sqr(internalN);
 
 // Wave number
@@ -34,20 +36,20 @@ const T precision = 1e-6;
 // Right part
 T right_part(T x, T y) { return(2 * sin(PI * y) + k * k * (1 - x) * x * sin(PI * y) + PI * PI * (1 - x) * x * sin(PI * y)); }
 
+// Boundaries
+T zero_boundary(T value) { return 0; }
+
 // Precise solution (for analythical purposes)
 T analythical_solution(T x, T y) { return (1 - x) * x * sin(PI * y); }
 
 UniquePtrArray get_exact_solution() {
-	auto sol_exact = make_raw_array(internalPointCount);
+	auto sol_exact = make_raw_array(pointCount);
 
 	T h = T(1) / (N - 1);
 
-	for (size_t j = 1; j < internalN + 1; ++j)
-		for (size_t i = 1; i < internalN + 1; ++i)
-			sol_exact[(j - 1) * internalN + (i - 1)] = analythical_solution(
-				i * h,
-				(static_cast<double>(internalN) - j + 1) * h
-			);
+	for (size_t i = 0; i < N; ++i)
+		for (size_t j = 0; j < N; ++j)
+			sol_exact[i * N + j] = analythical_solution(j * h, i * h);
 
 	return sol_exact;
 }
@@ -56,12 +58,21 @@ T get_relative_error_L2(T* const sol_numeric, T* const sol_exact) {
 	T L2_norm_of_difference(0);
 	T L2_norm_of_exact_sol(0);
 
-	for (size_t i = 0; i < internalPointCount; ++i) {
+	for (size_t i = 0; i < pointCount; ++i) {
 		L2_norm_of_difference += sqr(sol_numeric[i] - sol_exact[i]);
 		L2_norm_of_exact_sol += sqr(sol_exact[i]);
 	}
 
 	return sqrt(L2_norm_of_difference / L2_norm_of_exact_sol);
+}
+
+void print_sol(T* const sol) {
+	for (size_t i = 0; i < N; ++i) {
+		std::cout << "[";
+		for (size_t j = 0; j < N; ++j)
+			std::cout << std::setw(15) << sol[i * N + j];
+		std::cout << "]\n";
+	}
 }
 
 
@@ -98,7 +109,11 @@ int main(int argc, char** argv) {
 		table_add_1("Jacobi");
 
 		StaticTimer::start();
-		auto solution = Helmholtz_solve(k, right_part, L, N, Method::SEQUENTIAL_JACOBI, precision);
+		auto solution = helholtz_jacobi(
+			k, right_part, L, N, precision,
+			zero_boundary, zero_boundary, zero_boundary, zero_boundary,
+			SEQUENTIAL_MODE
+		);
 		jacobiSeqTime = StaticTimer::end();
 
 		table_add_2(jacobiSeqTime);
@@ -111,7 +126,11 @@ int main(int argc, char** argv) {
 		table_add_1("Parallel Jacobi");
 
 		StaticTimer::start();
-		auto solution = Helmholtz_solve(k, right_part, L, N, Method::PARALLEL_JACOBI, precision);
+		auto solution = helholtz_jacobi(
+			k, right_part, L, N, precision,
+			zero_boundary, zero_boundary, zero_boundary, zero_boundary,
+			PARALLEL_MODE
+		);
 		jacobiParTime = StaticTimer::end();
 
 		table_add_2(jacobiParTime);
