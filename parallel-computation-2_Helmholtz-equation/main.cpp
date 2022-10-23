@@ -3,7 +3,10 @@
 
 #include "static_timer.hpp"
 #include "helmholtz_jacobi.hpp"
+#include "helmholtz_seidel.hpp"
 #include "table.hpp"
+
+#define SEQUENTIAL_MODE 1
 
 
 /// Uncomment to check for memory leaks
@@ -18,7 +21,7 @@
 const T L = 1;
 
 // Grid size
-const size_t N = 6002;
+const size_t N = 2002;
 const size_t internalN = N - 2;
 
 const size_t pointCount = sqr(N);
@@ -78,29 +81,32 @@ void print_sol(T* const sol) {
 
 int main(int argc, char** argv) {
 	// Set up OpenMP
-	const int THREAD_CAP = 4;
+	/*const int THREAD_CAP = 4;
 
 	const int MAX_THREADS = omp_get_max_threads();
 	const int NUM_THREADS = std::min(THREAD_CAP, MAX_THREADS);
 
-	omp_set_num_threads(NUM_THREADS);
+	omp_set_num_threads(NUM_THREADS);*/
 
 	std::cout
 		<< "N = " << N << "\n"
 		<< "k^2 h^2 = " << c1 << "\n"
-		<< "precision = " << precision << "\n\n"
-		<< "Using " << NUM_THREADS << " threads out of " << MAX_THREADS << " available\n\n";
+		<< "precision = " << precision << "\n\n";
+	//	<< "Using " << NUM_THREADS << " threads out of " << MAX_THREADS << " available\n\n";
 
 	table_add_1("Method");
 	table_add_2("Time (sec)");
 	table_add_3("Rel. error");
 	table_add_4("Speedup");
+	table_add_5("Threads");
 	table_hline();
 
 	double jacobiSeqTime = 0;
 	double jacobiParTime = 0;
-	//double seidelSeqTime = 0;
-	//double seidelParTime = 0;
+	double SeidelSeqTime = 0;
+	double SeidelParTime = 0;
+
+	double MAXTHREADS = 8;
 
 	auto solution_exact = get_exact_solution();
 
@@ -119,9 +125,11 @@ int main(int argc, char** argv) {
 		table_add_2(jacobiSeqTime);
 		table_add_3(get_relative_error_L2(solution.get(), solution_exact.get()));
 		table_add_4(1);
+		table_add_5(1);
 	}
 
 	// 2) Parallel Jacobi
+	for (int PARALLEL_MODE = 2; PARALLEL_MODE <= MAXTHREADS; PARALLEL_MODE++)
 	{
 		table_add_1("Parallel Jacobi");
 
@@ -136,6 +144,44 @@ int main(int argc, char** argv) {
 		table_add_2(jacobiParTime);
 		table_add_3(get_relative_error_L2(solution.get(), solution_exact.get()));
 		table_add_4(jacobiSeqTime / jacobiParTime);
+		table_add_5(PARALLEL_MODE);
+	}
+
+	// 3)Sequential Seidel
+	{
+		table_add_1("Seidel");
+
+		StaticTimer::start();
+		auto solution = helholtz_seidel(
+			k, right_part, L, N, precision,
+			zero_boundary, zero_boundary, zero_boundary, zero_boundary,
+			SEQUENTIAL_MODE
+		);
+		SeidelSeqTime = StaticTimer::end();
+
+		table_add_2(SeidelSeqTime);
+		table_add_3(get_relative_error_L2(solution.get(), solution_exact.get()));
+		table_add_4(SeidelSeqTime / SeidelSeqTime);
+		table_add_5(SEQUENTIAL_MODE);
+	}
+
+	// 2) Parallel Seidel
+	for (int PARALLEL_MODE = 2; PARALLEL_MODE <= MAXTHREADS; PARALLEL_MODE++)
+	{
+		table_add_1("Parallel Seidel");
+
+		StaticTimer::start();
+		auto solution = helholtz_seidel(
+			k, right_part, L, N, precision,
+			zero_boundary, zero_boundary, zero_boundary, zero_boundary,
+			PARALLEL_MODE
+		);
+		SeidelParTime = StaticTimer::end();
+
+		table_add_2(SeidelParTime);
+		table_add_3(get_relative_error_L2(solution.get(), solution_exact.get()));
+		table_add_4(SeidelSeqTime / SeidelParTime);
+		table_add_5(PARALLEL_MODE);
 	}
 
 	/// Uncomment to check for memory leaks

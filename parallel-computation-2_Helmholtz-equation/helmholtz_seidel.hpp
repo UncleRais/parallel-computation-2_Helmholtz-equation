@@ -10,22 +10,17 @@
 // k - wave_number
 // f - right_part
 // using
-// # Iterative Jacobi method for linear system solution #
-// A * x = f, 
-// (L + U) * x_k + D * x_k+1 = f, 
-// L + U = A - D,
-// A = L + D + U, L - upper triangular, D - diagonal, U - lower triangular
-// x_k+1 = D^{-1} (f - (A - D) x_k)
-// x_k+1 = y + C x_k,
-// y = D^{-1} * f, C = D^{-1} * (D - A)
+// # Iterative Zeidel (red - black iterations) method for linear system solution #
+// 
 // Ñonvergence condition: diagonal dominance
-UniquePtrArray helholtz_jacobi(T k, std::function<T(T, T)> f, T L, size_t N, T epsilon,
-	std::function<T(T)> BC_left, std::function<T(T)> BC_right,
+UniquePtrArray helholtz_seidel(T k, std::function<T(T, T)> f, T L, size_t N, T epsilon,
+	std::function<T(T)> BC_left, std::function<T(T)> BC_right, 
 	std::function<T(T)> BC_bot, std::function<T(T)> BC_top,
 	int num_threads
 ) {
 	if (num_threads > 0) omp_set_num_threads(num_threads);
 	else  exit_with_error("num_threads must be the positive value!");
+
 	T h = T(1) / (N - 1);
 
 	const T alpha = T(4) + sqr(h) * sqr(k);
@@ -43,42 +38,39 @@ UniquePtrArray helholtz_jacobi(T k, std::function<T(T, T)> f, T L, size_t N, T e
 
 	// Tabulate boundaries
 	// Left
-#pragma omp parallel for 
+	#pragma omp parallel for 
 	for (int i = 0; i < N; ++i) {
 		x_ptr[i * N + 0] = BC_left(i * h);
 		x0_ptr[i * N + 0] = BC_left(i * h);
 	}
 	// Right
-#pragma omp parallel for
+	#pragma omp parallel for
 	for (int i = 0; i < N; ++i) {
 		x_ptr[i * N + N - 1] = BC_right(i * h);
 		x0_ptr[i * N + N - 1] = BC_right(i * h);
 	}
 	// Top
-#pragma omp parallel for
+	#pragma omp parallel for
 	for (int j = 1; j < N - 1; ++j) {
 		x_ptr[0 * N + j] = BC_top(j * h);
-		x0_ptr[0 * N + j] = BC_top(j * h);
+		x0_ptr[0 * N + j] = BC_top( j * h);
 	}
-	// Bottom 
-#pragma omp parallel for
+	// Bottom
+	#pragma omp parallel for 
 	for (int j = 1; j < N - 1; ++j) {
 		x_ptr[(N - 1) * N + j] = BC_bot(j * h);
 		x0_ptr[(N - 1) * N + j] = BC_bot(j * h);
 	}
 
 	T norm_diff_2 = 0;
-
-	// Jacobi method
+	// Zeidel method
 	do {
 		// x0 = x
 		std::swap(x_ptr, x0_ptr);
-
-		// Internal loop
-	#pragma omp parallel for 
+	#pragma omp parallel for
 		for (int i = 1; i < N - 1; ++i) {
 		#pragma omp parallel for 
-			for (int j = 1; j < N - 1; ++j) {
+			for (int j = 1; j < N - 1; ++j) if ((i + j) % 2){
 				const int indexIJ = i * N + j;
 
 				x_ptr[indexIJ] = inverseAlpha * (
@@ -91,13 +83,29 @@ UniquePtrArray helholtz_jacobi(T k, std::function<T(T, T)> f, T L, size_t N, T e
 			}
 		}
 
+	#pragma omp parallel for
+		for (int i = 1; i < N - 1; ++i) {
+		#pragma omp parallel for 
+			for (int j = 1; j < N - 1; ++j) if ((i + j + 1) % 2) {
+				const int indexIJ = i * N + j;
+
+				x_ptr[indexIJ] = inverseAlpha * (
+					x_ptr[indexIJ - N] + // up
+					x_ptr[indexIJ + N] + // down
+					x_ptr[indexIJ - 1] + // left
+					x_ptr[indexIJ + 1] + // right
+					beta * f(j * h, i * h)
+					);
+			}
+		}
+
 		// Stop condition
 		norm_diff_2 = 0;
-#pragma omp parallel for reduction(+:norm_diff_2)
+		#pragma omp parallel for reduction(+:norm_diff_2)
 		for (int i = 0; i < num_var; ++i) norm_diff_2 += sqr(x_ptr[i] - x0_ptr[i]);
 
 	} while (sqrt(norm_diff_2) > epsilon);
-
+	
 	// Return vector from last iteration
 	if (x.get() == x_ptr) return x;
 	else return x0;

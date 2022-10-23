@@ -23,8 +23,8 @@ UniquePtrArray make_raw_array(size_t size) {
 
 UniquePtrArray make_raw_array(size_t size, T defaultValue) {
 	UniquePtrArray arr(new T[size]);
-
-	for (size_t k = 0; k < size; ++k) arr[k] = defaultValue;
+#pragma omp parallel for 
+	for (int k = 0; k < size; ++k) arr[k] = defaultValue;
 
 	return arr;
 }
