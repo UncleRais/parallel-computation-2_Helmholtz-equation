@@ -11,7 +11,6 @@
 // f - right_part
 // using
 // # Iterative Zeidel (red - black iterations) method for linear system solution #
-// 
 // Ñonvergence condition: diagonal dominance
 UniquePtrArray helholtz_seidel(T k, std::function<T(T, T)> f, T L, size_t N, T epsilon,
 	std::function<T(T)> BC_left, std::function<T(T)> BC_right, 
@@ -69,7 +68,7 @@ UniquePtrArray helholtz_seidel(T k, std::function<T(T, T)> f, T L, size_t N, T e
 		std::swap(x_ptr, x0_ptr);
 	#pragma omp parallel for
 		for (int i = 1; i < N - 1; ++i) {
-		#pragma omp parallel for 
+		//#pragma omp parallel for 
 			for (int j = 1; j < N - 1; ++j) if ((i + j) % 2){
 				const int indexIJ = i * N + j;
 
@@ -85,7 +84,7 @@ UniquePtrArray helholtz_seidel(T k, std::function<T(T, T)> f, T L, size_t N, T e
 
 	#pragma omp parallel for
 		for (int i = 1; i < N - 1; ++i) {
-		#pragma omp parallel for 
+		//#pragma omp parallel for 
 			for (int j = 1; j < N - 1; ++j) if ((i + j + 1) % 2) {
 				const int indexIJ = i * N + j;
 
