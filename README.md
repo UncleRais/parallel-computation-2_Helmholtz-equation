@@ -21,4 +21,4 @@ $$u(0, y)  = \phi(y),\quad u(x, 0) = \xi(x),\quad  u(L_x, y) = \theta(y),\quad  
 where<br>
 $k$ - wave_number, $f$ - right_part.<br>
 
-Adjust grid size $N$, area sizes $L_x$ and $L_y$, wave number $k$, precision and boundary conditions in "main.cpp" to configure testing parameters. Parallel implementations assume $(N - 2)$ to be a multiple of num_threads.
+Adjust grid size $N$, area sizes $L_x$ and $L_y$\,, wave number $k$, precision and boundary conditions in "main.cpp" to configure testing parameters. Parallel implementations assume $(N - 2)$ to be a multiple of num_threads.
