@@ -26,7 +26,6 @@ UniquePtrArray helholtz_seidel(T k, std::function<T(T, T)> f, T L, size_t N, T e
 	const T inverseAlpha = T(1) / alpha;
 	const T beta = sqr(h);
 
-	const int internalN = N - 2;
 	const int num_var = sqr(N);
 
 	auto x = make_raw_array(num_var, 0); // initial guess in zero-vector
@@ -37,39 +36,41 @@ UniquePtrArray helholtz_seidel(T k, std::function<T(T, T)> f, T L, size_t N, T e
 
 	// Tabulate boundaries
 	// Left
-	#pragma omp parallel for 
+	//#pragma omp parallel for // No significant difference noticed, seems marginally faster without OMP
 	for (int i = 0; i < N; ++i) {
 		x_ptr[i * N + 0] = BC_left(i * h);
 		x0_ptr[i * N + 0] = BC_left(i * h);
 	}
 	// Right
-	#pragma omp parallel for
+	//#pragma omp parallel for // No significant difference noticed, seems marginally faster without OMP
 	for (int i = 0; i < N; ++i) {
 		x_ptr[i * N + N - 1] = BC_right(i * h);
 		x0_ptr[i * N + N - 1] = BC_right(i * h);
 	}
 	// Top
-	#pragma omp parallel for
+	//#pragma omp parallel for // No significant difference noticed, seems marginally faster without OMP
 	for (int j = 1; j < N - 1; ++j) {
 		x_ptr[0 * N + j] = BC_top(j * h);
 		x0_ptr[0 * N + j] = BC_top( j * h);
 	}
 	// Bottom
-	#pragma omp parallel for 
+	//#pragma omp parallel for // No significant difference noticed, seems marginally faster without OMP
 	for (int j = 1; j < N - 1; ++j) {
 		x_ptr[(N - 1) * N + j] = BC_bot(j * h);
 		x0_ptr[(N - 1) * N + j] = BC_bot(j * h);
 	}
 
 	T norm_diff_2 = 0;
-	// Zeidel method
+
+	// Seidel method
 	do {
 		// x0 = x
 		std::swap(x_ptr, x0_ptr);
-	#pragma omp parallel for
+		#pragma omp parallel for
 		for (int i = 1; i < N - 1; ++i) {
-		//#pragma omp parallel for 
-			for (int j = 1; j < N - 1; ++j) if ((i + j) % 2){
+			for (int j = 1 + i % 2; j < N - 1; j += 2) {
+				// 'int j = 1 + i % 2' with step of 2 gives the 
+				// same ordering as 'if ((i + j) % 2)' condition
 				const int indexIJ = i * N + j;
 
 				x_ptr[indexIJ] = inverseAlpha * (
@@ -82,10 +83,11 @@ UniquePtrArray helholtz_seidel(T k, std::function<T(T, T)> f, T L, size_t N, T e
 			}
 		}
 
-	#pragma omp parallel for
+		#pragma omp parallel for
 		for (int i = 1; i < N - 1; ++i) {
-		//#pragma omp parallel for 
-			for (int j = 1; j < N - 1; ++j) if ((i + j + 1) % 2) {
+			for (int j = 1 + (i + 1) % 2; j < N - 1; j += 2) {
+				// 'int j = 1 + (i + 1) % 2' with step of 2 gives the 
+				// same ordering as 'if ((i + j) % 2)' condition
 				const int indexIJ = i * N + j;
 
 				x_ptr[indexIJ] = inverseAlpha * (

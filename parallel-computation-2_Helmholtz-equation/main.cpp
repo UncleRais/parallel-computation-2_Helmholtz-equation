@@ -9,23 +9,13 @@
 #define SEQUENTIAL_MODE 1
 
 
-/// Uncomment to check for memory leaks
-//#define _DEBUG
-//#define _CRTDBG_MAP_ALLOC
-//#include <stdlib.h>
-//#include <crtdbg.h>
-
-
 // # Config #
 // Area size
 const T L = 1;
 
 // Grid size
 const size_t N = 2002;
-const size_t internalN = N - 2;
-
 const size_t pointCount = sqr(N);
-const size_t internalPointCount = sqr(internalN);
 
 // Wave number
 const T c1 = 10;
@@ -80,14 +70,6 @@ void print_sol(T* const sol) {
 
 
 int main(int argc, char** argv) {
-	// Set up OpenMP
-	/*const int THREAD_CAP = 4;
-
-	const int MAX_THREADS = omp_get_max_threads();
-	const int NUM_THREADS = std::min(THREAD_CAP, MAX_THREADS);
-
-	omp_set_num_threads(NUM_THREADS);*/
-
 	std::cout
 		<< "N = " << N << "\n"
 		<< "k^2 h^2 = " << c1 << "\n"
@@ -103,10 +85,10 @@ int main(int argc, char** argv) {
 
 	double jacobiSeqTime = 0;
 	double jacobiParTime = 0;
-	double SeidelSeqTime = 0;
-	double SeidelParTime = 0;
+	double seidelSeqTime = 0;
+	double seidelParTime = 0;
 
-	double MAXTHREADS = 8;
+	double MAX_THREADS = omp_get_max_threads();
 
 	auto solution_exact = get_exact_solution();
 
@@ -129,7 +111,7 @@ int main(int argc, char** argv) {
 	}
 
 	// 2) Parallel Jacobi
-	for (int PARALLEL_MODE = 2; PARALLEL_MODE <= MAXTHREADS; PARALLEL_MODE++)
+	for (int PARALLEL_MODE = 2; PARALLEL_MODE <= MAX_THREADS; PARALLEL_MODE++)
 	{
 		table_add_1("Parallel Jacobi");
 
@@ -157,16 +139,16 @@ int main(int argc, char** argv) {
 			zero_boundary, zero_boundary, zero_boundary, zero_boundary,
 			SEQUENTIAL_MODE
 		);
-		SeidelSeqTime = StaticTimer::end();
+		seidelSeqTime = StaticTimer::end();
 
-		table_add_2(SeidelSeqTime);
+		table_add_2(seidelSeqTime);
 		table_add_3(get_relative_error_L2(solution.get(), solution_exact.get()));
-		table_add_4(SeidelSeqTime / SeidelSeqTime);
+		table_add_4(seidelSeqTime / seidelSeqTime);
 		table_add_5(SEQUENTIAL_MODE);
 	}
 
 	// 2) Parallel Seidel
-	for (int PARALLEL_MODE = 2; PARALLEL_MODE <= MAXTHREADS; PARALLEL_MODE++)
+	for (int PARALLEL_MODE = 2; PARALLEL_MODE <= MAX_THREADS; PARALLEL_MODE++)
 	{
 		table_add_1("Parallel Seidel");
 
@@ -176,17 +158,12 @@ int main(int argc, char** argv) {
 			zero_boundary, zero_boundary, zero_boundary, zero_boundary,
 			PARALLEL_MODE
 		);
-		SeidelParTime = StaticTimer::end();
+		seidelParTime = StaticTimer::end();
 
-		table_add_2(SeidelParTime);
+		table_add_2(seidelParTime);
 		table_add_3(get_relative_error_L2(solution.get(), solution_exact.get()));
-		table_add_4(SeidelSeqTime / SeidelParTime);
+		table_add_4(seidelSeqTime / seidelParTime);
 		table_add_5(PARALLEL_MODE);
 	}
-
-	/// Uncomment to check for memory leaks
-	// solution_exact.reset();
-	/*if (_CrtDumpMemoryLeaks()) { std::cout << "\nMemory leaks!\n"; }
-	else { std::cout << "\n No leaks\n"; }*/
 }
 
