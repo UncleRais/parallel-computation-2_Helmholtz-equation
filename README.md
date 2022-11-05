@@ -17,10 +17,7 @@ Note that present implementations are intended for academic purposes, as such th
 
 Helmholtz equation:<br>
 $$-u_{xx} - u_{yy} + k^2 u(x, y) = f(x, y),$$<br>
-$$u(0, y)  = \phi(y),$$<br>
-$$u(x, 0) = \xi(x),$$ <br>
-$$u(L_x, y) = \theta(y),$$ <br>
-$$u(x, L_y) = \eta(x),$$<br>
+$$u(0, y)  = \phi(y), u(x, 0) = \xi(x), u(L_x, y) = \theta(y), u(x, L_y) = \eta(x),$$<br>
 where<br>
 k - wave_number<br>
 f - right_part<br>
