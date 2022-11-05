@@ -16,8 +16,8 @@ Note that present implementations are intended for academic purposes, as such th
 ## Usage
 
 Helmholtz equation:<br>
-$$-u_{xx} - u_{yy} + k^2 u(x, y) = f(x, y), \quad (x, y) \in D = [0, L_x]x[0, L_y], $$<br>
-$$u(0, y)  = \phi(y),\quad u(x, 0) = \xi(x),\quad  u(L_x, y) = \theta(y),\quad  u(x, L_y) = \eta(x),$$<br>
+$$-u_{xx} - u_{yy} + k^2 u(x, y) = f(x, y), \quad (x, y) \in D = [0, L_x]\times[0, L_y], $$
+$$u(0, y)  = \phi(y),\quad u(x, 0) = \xi(x),\quad  u(L_x, y) = \theta(y),\quad  u(x, L_y) = \eta(x),$$
 where<br>
 k - wave_number, f - right_part.<br>
 
