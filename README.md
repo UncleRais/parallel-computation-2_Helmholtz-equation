@@ -16,7 +16,7 @@ Note that present implementations are intended for academic purposes, as such th
 ## Usage
 
 Helmholtz equation:<br>
--u_xx - u_yy + k^2 u(x, y) = f(x, y)<br>
+$$-u_{xx} - u_{yy} + k^2 u(x, y) = f(x, y)$$<br>
 where<br>
 k - wave_number<br>
 f - right_part<br>
